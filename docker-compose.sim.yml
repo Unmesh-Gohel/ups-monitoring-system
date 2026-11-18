@@ -1,0 +1,203 @@
+# Simulator overlay. Use with: docker compose -f docker-compose.yml -f docker-compose.sim.yml up
+
+services:
+  snmpsim-eaton-ups:
+    build:
+      context: ./simulators/snmpsim
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SNMP_DATA_FILE: eaton-ups.snmprec
+      SNMP_RO_USER: ${SNMP_RO_USER:-snmp-ro}
+      SNMP_RO_AUTH_KEY: ${SNMP_RO_AUTH_KEY:?set SNMP_RO_AUTH_KEY in .env}
+      SNMP_RO_PRIV_KEY: ${SNMP_RO_PRIV_KEY:?set SNMP_RO_PRIV_KEY in .env}
+      SNMP_RW_USER: ${SNMP_RW_USER:-snmp-rw}
+      SNMP_RW_AUTH_KEY: ${SNMP_RW_AUTH_KEY:?set SNMP_RW_AUTH_KEY in .env}
+      SNMP_RW_PRIV_KEY: ${SNMP_RW_PRIV_KEY:?set SNMP_RW_PRIV_KEY in .env}
+      SIM_STATE_FILE: /shared/state/eaton-ups.json
+    volumes:
+      - ./simulators/snmpsim/data:/opt/snmpsim/data:ro
+      - sim_state:/shared/state
+    networks:
+      - devices
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(('127.0.0.1',0)); s.close()\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  snmpsim-apc-ups:
+    build:
+      context: ./simulators/snmpsim
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SNMP_DATA_FILE: apc-ups.snmprec
+      SNMP_RO_USER: ${SNMP_RO_USER:-snmp-ro}
+      SNMP_RO_AUTH_KEY: ${SNMP_RO_AUTH_KEY:?set SNMP_RO_AUTH_KEY in .env}
+      SNMP_RO_PRIV_KEY: ${SNMP_RO_PRIV_KEY:?set SNMP_RO_PRIV_KEY in .env}
+      SNMP_RW_USER: ${SNMP_RW_USER:-snmp-rw}
+      SNMP_RW_AUTH_KEY: ${SNMP_RW_AUTH_KEY:?set SNMP_RW_AUTH_KEY in .env}
+      SNMP_RW_PRIV_KEY: ${SNMP_RW_PRIV_KEY:?set SNMP_RW_PRIV_KEY in .env}
+      SIM_STATE_FILE: /shared/state/apc-ups.json
+    volumes:
+      - ./simulators/snmpsim/data:/opt/snmpsim/data:ro
+      - sim_state:/shared/state
+    networks:
+      - devices
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(('127.0.0.1',0)); s.close()\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  snmpsim-apc-pdu:
+    build:
+      context: ./simulators/snmpsim
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SNMP_DATA_FILE: apc-pdu.snmprec
+      SNMP_RO_USER: ${SNMP_RO_USER:-snmp-ro}
+      SNMP_RO_AUTH_KEY: ${SNMP_RO_AUTH_KEY:?set SNMP_RO_AUTH_KEY in .env}
+      SNMP_RO_PRIV_KEY: ${SNMP_RO_PRIV_KEY:?set SNMP_RO_PRIV_KEY in .env}
+      SNMP_RW_USER: ${SNMP_RW_USER:-snmp-rw}
+      SNMP_RW_AUTH_KEY: ${SNMP_RW_AUTH_KEY:?set SNMP_RW_AUTH_KEY in .env}
+      SNMP_RW_PRIV_KEY: ${SNMP_RW_PRIV_KEY:?set SNMP_RW_PRIV_KEY in .env}
+      SIM_STATE_FILE: /shared/state/apc-pdu.json
+    volumes:
+      - ./simulators/snmpsim/data:/opt/snmpsim/data:ro
+      - sim_state:/shared/state
+    networks:
+      - devices
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import socket; s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM); s.bind(('127.0.0.1',0)); s.close()\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  raritan-pdu-mock:
+    build:
+      context: ./simulators/raritan-mock
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      SIM_STATE_FILE: /shared/state/raritan-pdu.json
+    volumes:
+      - sim_state:/shared/state
+    networks:
+      - devices
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8443/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  nut-server:
+    build:
+      context: ./infra/nut
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      SIM_STATE_FILE: /shared/state/nut-ups.json
+    volumes:
+      - ./infra/nut/ups.conf:/config/ups.conf:ro
+      - ./infra/nut/upsd.conf:/config/upsd.conf:ro
+      - ./infra/nut/upsd.users:/config/upsd.users:ro
+      - ./infra/nut/dummy-ups.dev:/config/dummy-ups.dev:ro
+      - ./infra/nut/nut.conf:/config/nut.conf:ro
+      - sim_state:/shared/state
+    networks:
+      - devices
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "upsc dummy@127.0.0.1 >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  sim-controller:
+    build:
+      context: ./simulators/sim-controller
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-dev}
+      SIM_STATE_DIR: /shared/state
+    volumes:
+      - sim_state:/shared/state
+    networks:
+      - devices
+      - app
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # Throwaway helper for Done-when snmpwalk checks (no host ports).
+  snmp-tools:
+    build:
+      context: ./simulators/snmpsim
+      dockerfile: Dockerfile.tools
+    profiles:
+      - tools
+    networks:
+      - devices
+    environment:
+      SNMP_RO_USER: ${SNMP_RO_USER:-snmp-ro}
+      SNMP_RO_AUTH_KEY: ${SNMP_RO_AUTH_KEY:?set SNMP_RO_AUTH_KEY in .env}
+      SNMP_RO_PRIV_KEY: ${SNMP_RO_PRIV_KEY:?set SNMP_RO_PRIV_KEY in .env}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  sim_state:

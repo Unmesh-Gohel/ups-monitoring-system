@@ -1,0 +1,16 @@
+# NUT dummy-ups device file for PowerWatch Phase 0
+ups.mfr: PowerWatch
+ups.model: Dummy-UPS
+ups.status: OL
+ups.load: 18
+ups.realpower: 210
+ups.temperature: 27
+battery.charge: 100
+battery.voltage: 27.1
+battery.runtime: 1320
+battery.temperature: 27
+input.voltage: 120.0
+input.frequency: 60.0
+output.voltage: 120.0
+outlet.1.status: on
+outlet.2.status: on

@@ -1,0 +1,15 @@
+title = "PowerWatch gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented local-dev placeholders (not real secrets)"
+paths = [
+  '''\.env\.example$''',
+  '''infra/keycloak/realm-powerwatch\.json$''',
+  '''infra/nut/upsd\.users$''',
+]
+regexes = [
+  '''ChangeMe-[A-Za-z0-9!_-]+''',
+]
