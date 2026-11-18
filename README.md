@@ -35,15 +35,17 @@ Only Caddy publishes a port. Device simulators are reachable only from container
 
 ## Verify SNMPv3 simulators
 
-Simulators are not published on the host. Walk them from a throwaway container on the `devices` network:
+Simulators are not published on the host. Walk them from a throwaway container on the `devices` network (build the `tools` profile image first):
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.sim.yml run --rm --entrypoint snmpwalk snmp-tools \
-  -v3 -l authPriv -u snmp-ro -a SHA-256 -A "$SNMP_RO_AUTH_KEY" -x AES -X "$SNMP_RO_PRIV_KEY" \
-  snmpsim-eaton-ups:1161 1.3.6.1.2.1.1
+set -a && source .env && set +a
+docker compose -f docker-compose.yml -f docker-compose.sim.yml build snmp-tools
+docker compose -f docker-compose.yml -f docker-compose.sim.yml run --rm --no-deps --entrypoint snmpget snmp-tools \
+  -v3 -l authPriv -u "$SNMP_RO_USER" -a SHA-256 -A "$SNMP_RO_AUTH_KEY" -x AES -X "$SNMP_RO_PRIV_KEY" \
+  -n device udp:snmpsim-eaton-ups:1161 1.3.6.1.2.1.1.5.0
 ```
 
-Repeat for `snmpsim-apc-ups` and `snmpsim-apc-pdu`. SNMPv2c must be refused.
+Repeat for `snmpsim-apc-ups` and `snmpsim-apc-pdu`. SNMPv2c must time out / be refused (`--v3-only` on snmpsim).
 
 ## Sim controller
 
@@ -60,6 +62,16 @@ Documented in Phase 4 (`docs/add-real-device.md`). Until then: keep SNMPv1/v2c o
 ```bash
 ./scripts/security-check.sh
 ```
+
+## Troubleshooting
+
+If containers on the same Compose network cannot reach each other (Keycloak cannot open Postgres, SNMP tools time out) but the bridge gateway pings, some hosts need:
+
+```bash
+sudo sysctl -w net.bridge.bridge-nf-call-iptables=0 net.bridge.bridge-nf-call-ip6tables=0
+```
+
+Docker Desktop on a normal PC usually does not need this. It is documented because some CI/cloud kernels break inter-container communication when bridge traffic is forced through iptables.
 
 ## Layout
 

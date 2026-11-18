@@ -137,10 +137,11 @@ services:
     environment:
       SIM_STATE_FILE: /shared/state/nut-ups.json
     volumes:
-      - ./infra/nut/ups.conf:/etc/nut/ups.conf:ro
-      - ./infra/nut/upsd.conf:/etc/nut/upsd.conf:ro
-      - ./infra/nut/upsd.users:/etc/nut/upsd.users:ro
-      - ./infra/nut/dummy-ups.dev:/etc/nut/dummy-ups.dev:ro
+      - ./infra/nut/ups.conf:/config/ups.conf:ro
+      - ./infra/nut/upsd.conf:/config/upsd.conf:ro
+      - ./infra/nut/upsd.users:/config/upsd.users:ro
+      - ./infra/nut/dummy-ups.dev:/config/dummy-ups.dev:ro
+      - ./infra/nut/nut.conf:/config/nut.conf:ro
       - sim_state:/shared/state
     networks:
       - devices

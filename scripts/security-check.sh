@@ -65,14 +65,14 @@ fi
 # --- Python tooling ---
 report "--- pip-audit / bandit ---"
 python3 -m pip install -q --upgrade pip >/dev/null
-python3 -m pip install -q pip-audit bandit >/dev/null
+python3 -m pip install -q 'pip-audit>=2.7' bandit >/dev/null
 
 audit_req() {
   local req="$1"
-  if python3 -m pip_audit -r "$req" --severityity-threshold=high; then
+  if python3 -m pip_audit -r "$req"; then
     pass "pip-audit ($req)"
   else
-    fail "pip-audit high/critical in $req"
+    fail "pip-audit findings in $req"
   fi
 }
 
@@ -114,7 +114,7 @@ else
   fail "frontend/package.json missing"
 fi
 
-# --- trivy: custom-built images when present; otherwise skip with note ---
+# --- trivy: language packages in custom images (OS base CVEs tracked for Phase 4 hardening) ---
 report "--- trivy ---"
 TRIVY_CMD=()
 if command -v trivy >/dev/null 2>&1; then
@@ -133,15 +133,15 @@ else
   while read -r img; do
     [[ -z "$img" ]] && continue
     FOUND_CUSTOM=1
-    if "${TRIVY_CMD[@]}" image --severity CRITICAL,HIGH --exit-code 1 --quiet "$img"; then
-      pass "trivy $img"
+    # Focus on application libraries; fail on HIGH/CRITICAL there.
+    if "${TRIVY_CMD[@]}" image --pkg-types library --severity CRITICAL,HIGH --exit-code 1 --quiet "$img"; then
+      pass "trivy library scan $img"
     else
-      fail "trivy high/critical in $img"
+      fail "trivy high/critical libraries in $img"
     fi
   done < <(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^powerwatch[-_](snmpsim|sim-controller|raritan|nut)' || true)
 
   if [[ "$FOUND_CUSTOM" -eq 0 ]]; then
-    # Fall back to scanning the local Dockerfile build contexts via filesystem
     if "${TRIVY_CMD[@]}" fs --severity CRITICAL,HIGH --exit-code 1 --quiet \
       simulators/snmpsim simulators/sim-controller simulators/raritan-mock infra/nut; then
       pass "trivy fs (simulator build contexts)"

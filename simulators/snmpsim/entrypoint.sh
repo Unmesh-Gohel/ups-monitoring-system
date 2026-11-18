@@ -2,7 +2,7 @@
 set -eu
 
 DATA_FILE="${SNMP_DATA_FILE:?SNMP_DATA_FILE is required}"
-DATA_DIR="/opt/snmpsim/runtime-data"
+DATA_DIR="/tmp/snmpsim-runtime-data"
 CACHE_DIR="/tmp/snmpsim-cache"
 
 mkdir -p "$DATA_DIR" "$CACHE_DIR"
@@ -36,6 +36,6 @@ exec snmpsim-command-responder \
   --v3-priv-key="${SNMP_RW_PRIV_KEY}" \
   --v3-priv-proto=AES128 \
   --v3-context-name=device \
-  --variation-module-options=writecache:file="${CACHE_DIR}/writecache.db" \
+  --variation-module-options=writecache:file:${CACHE_DIR}/writecache.db \
   --logging-method=stdout \
   --log-level=info

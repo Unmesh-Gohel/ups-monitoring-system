@@ -8,7 +8,33 @@ RUN useradd --create-home --uid 10001 --shell /usr/sbin/nologin snmpsim \
 WORKDIR /opt/snmpsim
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt \
+    && python - <<'PY'
+"""Patch pysnmp AES/DES imports for current cryptography layouts.
+
+pysnmp 7.1.26+ imports cryptography.hazmat.decrepit.ciphers.modes.CFB,
+which is not shipped yet; fall back to primitives.ciphers.modes.CFB.
+"""
+from pathlib import Path
+
+site = Path("/usr/local/lib/python3.12/site-packages/pysnmp")
+replacements = [
+    (
+        "from cryptography.hazmat.decrepit.ciphers.modes import CFB\n"
+        "    from cryptography.hazmat.primitives.ciphers import algorithms, Cipher",
+        "from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes\n"
+        "    CFB = modes.CFB",
+    ),
+]
+for path in site.rglob("*.py"):
+    text = path.read_text(encoding="utf-8")
+    original = text
+    for old, new in replacements:
+        text = text.replace(old, new)
+    if text != original:
+        path.write_text(text, encoding="utf-8")
+        print(f"patched {path}")
+PY
 
 COPY entrypoint.sh /opt/snmpsim/entrypoint.sh
 RUN chmod 755 /opt/snmpsim/entrypoint.sh \

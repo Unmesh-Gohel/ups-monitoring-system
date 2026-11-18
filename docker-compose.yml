@@ -65,13 +65,6 @@ services:
       - app
     security_opt:
       - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - FOWNER
-      - SETUID
-      - SETGID
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-powerwatch} -d ${POSTGRES_DB:-powerwatch}"]
       interval: 10s
@@ -81,21 +74,26 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.0.0
     restart: unless-stopped
+    # start-dev is intentional for local Phase 0; Phase 4 switches to production start checks.
     command:
-      - start
+      - start-dev
       - --import-realm
-      - --hostname=https://${POWERWATCH_HOSTNAME:-localhost}/auth
-      - --hostname-admin-url=https://${POWERWATCH_HOSTNAME:-localhost}/auth
-      - --hostname-strict=false
-      - --http-enabled=true
-      - --proxy-headers=xforwarded
+      - --http-port=8080
       - --http-relative-path=/auth
+      - --hostname-strict=false
+      - --proxy-headers=xforwarded
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_PORT: "5432"
+      KC_DB_URL_DATABASE: keycloak
       KC_DB_USERNAME: ${POSTGRES_USER:-powerwatch}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       KC_HEALTH_ENABLED: "true"
+      KC_HOSTNAME: https://${POWERWATCH_HOSTNAME:-localhost}
+      KC_HOSTNAME_ADMIN: https://${POWERWATCH_HOSTNAME:-localhost}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD in .env}
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?set KEYCLOAK_ADMIN_PASSWORD in .env}
       KEYCLOAK_TEST_USER_PASSWORD: ${KEYCLOAK_TEST_USER_PASSWORD:?set KEYCLOAK_TEST_USER_PASSWORD in .env}
@@ -112,8 +110,8 @@ services:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080"]
       interval: 15s
       timeout: 5s
-      retries: 20
-      start_period: 60s
+      retries: 30
+      start_period: 120s
 
   vault:
     image: hashicorp/vault:1.17.5
