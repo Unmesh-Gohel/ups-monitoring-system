@@ -1,0 +1,5 @@
+[monuser]
+  password = ChangeMe-NutMonitor-DevOnly
+  upsmon master
+  actions = SET
+  instcmds = ALL
