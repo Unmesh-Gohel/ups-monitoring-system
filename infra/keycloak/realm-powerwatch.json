@@ -1,0 +1,224 @@
+{
+  "realm": "powerwatch",
+  "enabled": true,
+  "displayName": "PowerWatch",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "sslRequired": "external",
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyInitialCounter": 0,
+  "otpPolicyDigits": 6,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyPeriod": 30,
+  "otpPolicyCodeReusable": false,
+  "browserSecurityHeaders": {
+    "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+    "xContentTypeOptions": "nosniff",
+    "xFrameOptions": "DENY",
+    "xRobotsTag": "none",
+    "xXSSProtection": "1; mode=block",
+    "strictTransportSecurity": "max-age=31536000; includeSubDomains"
+  },
+  "roles": {
+    "realm": [
+      { "name": "viewer", "description": "See dashboards" },
+      { "name": "operator", "description": "Request reboots, acknowledge alerts" },
+      { "name": "approver", "description": "Approve or deny outlet requests" },
+      { "name": "admin", "description": "Manage devices, users, outlet labels (does not bypass approvals)" }
+    ]
+  },
+  "users": [
+    {
+      "username": "viewer1",
+      "enabled": true,
+      "email": "viewer1@example.com",
+      "emailVerified": true,
+      "firstName": "Viewer",
+      "lastName": "One",
+      "realmRoles": ["viewer"],
+      "requiredActions": ["CONFIGURE_TOTP"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe-TestUser-DevOnly!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "operator1",
+      "enabled": true,
+      "email": "operator1@example.com",
+      "emailVerified": true,
+      "firstName": "Operator",
+      "lastName": "One",
+      "realmRoles": ["operator", "viewer"],
+      "requiredActions": ["CONFIGURE_TOTP"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe-TestUser-DevOnly!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "approver1",
+      "enabled": true,
+      "email": "approver1@example.com",
+      "emailVerified": true,
+      "firstName": "Approver",
+      "lastName": "One",
+      "realmRoles": ["approver", "viewer"],
+      "requiredActions": ["CONFIGURE_TOTP"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe-TestUser-DevOnly!",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "username": "admin1",
+      "enabled": true,
+      "email": "admin1@example.com",
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "One",
+      "realmRoles": ["admin", "viewer"],
+      "requiredActions": ["CONFIGURE_TOTP"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "ChangeMe-TestUser-DevOnly!",
+          "temporary": false
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "powerwatch-app",
+      "name": "PowerWatch App",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "ChangeMe-OidcClientSecret-DevOnly",
+      "redirectUris": [
+        "https://localhost/*",
+        "https://localhost/api/auth/callback"
+      ],
+      "webOrigins": ["https://localhost"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "frontchannelLogout": true,
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://localhost/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "grafana",
+      "name": "Grafana",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "ChangeMe-GrafanaOidcSecret-DevOnly",
+      "redirectUris": ["https://localhost/grafana/*"],
+      "webOrigins": ["https://localhost"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect"
+    }
+  ],
+  "browserFlow": "powerwatch browser",
+  "authenticationFlows": [
+    {
+      "alias": "powerwatch browser",
+      "description": "Browser flow with password then required TOTP",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-spnego",
+          "authenticatorFlow": false,
+          "requirement": "DISABLED",
+          "priority": 20,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "identity-provider-redirector",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 25,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "powerwatch forms",
+          "authenticatorFlow": true,
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "autheticatorFlow": true,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "powerwatch forms",
+      "description": "Username/password then OTP",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "autheticatorFlow": false,
+          "userSetupAllowed": true
+        }
+      ]
+    }
+  ]
+}
