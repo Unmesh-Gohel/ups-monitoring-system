@@ -1,0 +1,16 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".venv", "venv", "node_modules"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+files = ["backend", "simulators/sim-controller", "simulators/raritan-mock"]
+
+[tool.bandit]
+exclude_dirs = [".venv", "venv", "node_modules", "tests"]
